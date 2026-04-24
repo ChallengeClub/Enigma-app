@@ -203,6 +203,10 @@
                     <select id="pos-r"></select>
                 </div>
             </div>
+            <div>
+                <label>現在位置 (L/M/R)</label>
+                <div id="current-pos" style="padding:8px; border:1px solid var(--border-color); border-radius:4px; background:#f8f9fa; font-family:monospace;">AAA</div>
+            </div>
         </div>
     </div>
 
@@ -296,6 +300,21 @@
         ROTORS[key].inverse = createInverseWiring(ROTORS[key].wiring);
     });
 
+    // 実行時に進む現在位置（初期位置とは分離して保持）
+    const runtimePos = { l: 'A', m: 'A', r: 'A' };
+
+    function updateCurrentPosDisplay() {
+        document.getElementById('current-pos').textContent = `${runtimePos.l}${runtimePos.m}${runtimePos.r}`;
+    }
+
+    function syncRuntimePosFromInitial() {
+        runtimePos.l = document.getElementById('pos-l').value;
+        runtimePos.m = document.getElementById('pos-m').value;
+        runtimePos.r = document.getElementById('pos-r').value;
+        updateCurrentPosDisplay();
+        document.getElementById('final-pos').textContent = `${runtimePos.l}${runtimePos.m}${runtimePos.r}`;
+    }
+
     /**
      * UIの初期化
      */
@@ -330,10 +349,12 @@
             el.addEventListener('change', checkRotorDuplicates);
         });
         document.getElementById('btn-execute').addEventListener('click', onExecute);
+        ['pos-l', 'pos-m', 'pos-r'].forEach(id => {
+            document.getElementById(id).addEventListener('change', syncRuntimePosFromInitial);
+        });
+
         document.getElementById('btn-reset').addEventListener('click', () => {
-            document.getElementById('pos-l').selectedIndex = 0;
-            document.getElementById('pos-m').selectedIndex = 0;
-            document.getElementById('pos-r').selectedIndex = 0;
+            syncRuntimePosFromInitial();
         });
         document.getElementById('btn-clear').addEventListener('click', () => {
             document.getElementById('text-input').value = "";
@@ -342,6 +363,7 @@
         });
 
         checkRotorDuplicates();
+        syncRuntimePosFromInitial();
     }
 
     /**
@@ -473,9 +495,9 @@
                 r: charToIndex(document.getElementById('ring-r').value)
             },
             pos: {
-                l: document.getElementById('pos-l').value,
-                m: document.getElementById('pos-m').value,
-                r: document.getElementById('pos-r').value
+                l: runtimePos.l,
+                m: runtimePos.m,
+                r: runtimePos.r
             },
             reflector: document.getElementById('reflector-select').value
         };
@@ -534,10 +556,10 @@
         document.getElementById('output-text').textContent = resultStr;
         document.getElementById('final-pos').textContent = `${state.pos.l}${state.pos.m}${state.pos.r}`;
         
-        // UI上のロータ位置を同期
-        document.getElementById('pos-l').value = state.pos.l;
-        document.getElementById('pos-m').value = state.pos.m;
-        document.getElementById('pos-r').value = state.pos.r;
+        runtimePos.l = state.pos.l;
+        runtimePos.m = state.pos.m;
+        runtimePos.r = state.pos.r;
+        updateCurrentPosDisplay();
 
         updateLogTable(logs);
     }
