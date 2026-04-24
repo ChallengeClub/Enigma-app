@@ -6,7 +6,7 @@ Enigma I（3ロータ）互換の暗号変換器を、ブラウザ上で動作�
 
 ## 🚀 デモ
 
-（公開URLを後で追記）
+https://enigma-app.pages.dev/
 
 ---
 
