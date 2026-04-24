@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enigma I Simulator</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --border-color: #dcdde1;
+            --error-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: block;
+            color: var(--accent-color);
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-secondary { background-color: #95a5a6; color: white; }
+        .btn-secondary:hover { background-color: #7f8c8d; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        .output-area {
+            background: #2f3640;
+            color: #fbc531;
+            padding: 15px;
+            border-radius: 4px;
+            min-height: 50px;
+            word-break: break-all;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .status-info {
+            font-size: 0.9rem;
+            color: #636e72;
+            margin-bottom: 20px;
+        }
+
+        .log-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: center;
+        }
+
+        th { background-color: #f8f9fa; position: sticky; top: 0; }
+
+        .hidden { display: none; }
+
+        @media (max-width: 600px) {
+            .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Enigma I Simulator</h1>
+
+    <!-- Rotor & Reflector Settings -->
+    <div class="section">
+        <span class="section-title">1. 基本設定 (ロータ & リフレクタ)</span>
+        <div id="rotor-warning" class="error-msg" style="display:block; margin-bottom:10px; color:orange;"></div>
+        <div class="grid-3">
+            <div>
+                <label>リフレクタ</label>
+                <select id="reflector-select">
+                    <option value="B">UKW B</option>
+                    <option value="C">UKW C</option>
+                </select>
+            </div>
+            <div></div><div></div>
+
+            <div>
+                <label>左ロータ (L)</label>
+                <select id="rotor-l-type" class="rotor-config"></select>
+            </div>
+            <div>
+                <label>中ロータ (M)</label>
+                <select id="rotor-m-type" class="rotor-config"></select>
+            </div>
+            <div>
+                <label>右ロータ (R)</label>
+                <select id="rotor-r-type" class="rotor-config"></select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ring & Position Settings -->
+    <div class="section">
+        <span class="section-title">2. リング設定 & 初期位置</span>
+        <div class="grid-3">
+            <div>
+                <label>リング (L/M/R)</label>
+                <div style="display:flex; gap:2px;">
+                    <select id="ring-l"></select>
+                    <select id="ring-m"></select>
+                    <select id="ring-r"></select>
+                </div>
+            </div>
+            <div>
+                <label>初期位置 (L/M/R)</label>
+                <div style="display:flex; gap:2px;">
+                    <select id="pos-l"></select>
+                    <select id="pos-m"></select>
+                    <select id="pos-r"></select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plugboard Settings -->
+    <div class="section">
+        <span class="section-title">3. プラグボード (例: AV BS CG)</span>
+        <input type="text" id="plugboard-input" placeholder="空白区切りでペアを入力（例: AV BS）">
+        <div id="plugboard-error" class="error-msg"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="section">
+        <span class="section-title">4. テキスト入力</span>
+        <textarea id="text-input" rows="4" placeholder="変換したいテキストを入力してください..."></textarea>
+    </div>
+
+    <!-- Controls -->
+    <div class="btn-group">
+        <button id="btn-execute" class="btn-primary">実行 (Encrypt / Decrypt)</button>
+        <button id="btn-reset" class="btn-secondary">位置リセット</button>
+        <button id="btn-clear" class="btn-danger">クリア</button>
+    </div>
+
+    <!-- Results -->
+    <div class="section">
+        <span class="section-title">変換結果</span>
+        <div id="output-text" class="output-area">ここに結果が表示されます</div>
+        <div class="status-info">
+            最終ロータ位置: <span id="final-pos" style="font-weight:bold;">---</span>
+        </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="section" id="log-section">
+        <span class="section-title">変換ログ (直近の実行)</span>
+        <div class="log-table-container">
+            <table id="log-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>入力</th>
+                        <th>変換前位置</th>
+                        <th>出力</th>
+                        <th>変換後位置</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Enigma I 定数・配線データ
+     */
+    const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const ROTORS = {
+        "I":   { wiring: "EKMFLGDQVZNTOWYHXUSPAIBRCJ", notch: "Q" },
+        "II":  { wiring: "AJDKSIRUXBLHWTMCQGZNPYFVOE", notch: "E" },
+        "III": { wiring: "BDFHJLCPRTXVZNYEIWGAKMUSQO", notch: "V" },
+        "IV":  { wiring: "ESOVPZJAYQUIRHXLNFTGKDCMWB", notch: "J" },
+        "V":   { wiring: "VZBRGITYUPSDNHLXAWMJQOFECK", notch: "Z" }
+    };
+    const REFLECTORS = {
+        "B": "YRUHQSLDPXNGOKMIEBFZCWVJAT",
+        "C": "FVPJIAOYEDRZXWGCTKUQSBNMHL"
+    };
+
+    /**
+     * ヘルパー関数
+     */
+    const charToIndex = (ch) => ALPHABET.indexOf(ch.toUpperCase());
+    const indexToChar = (idx) => ALPHABET[(idx + 26) % 26];
+    const mod26 = (n) => ((n % 26) + 26) % 26;
+
+    /**
+     * 逆配線の作成 (デコード時用)
+     */
+    function createInverseWiring(wiring) {
+        let inverse = new Array(26);
+        for (let i = 0; i < 26; i++) {
+            let targetIdx = charToIndex(wiring[i]);
+            inverse[targetIdx] = indexToChar(i);
+        }
+        return inverse.join('');
+    }
+
+    // 各ロータの逆配線を事前計算
+    Object.keys(ROTORS).forEach(key => {
+        ROTORS[key].inverse = createInverseWiring(ROTORS[key].wiring);
+    });
+
+    /**
+     * UIの初期化
+     */
+    function initUI() {
+        const rotorSelects = ['rotor-l-type', 'rotor-m-type', 'rotor-r-type'];
+        const alphSelects = ['ring-l', 'ring-m', 'ring-r', 'pos-l', 'pos-m', 'pos-r'];
+
+        rotorSelects.forEach((id, idx) => {
+            const el = document.getElementById(id);
+            Object.keys(ROTORS).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `Rotor ${key}`;
+                el.appendChild(opt);
+            });
+            // デフォルト設定: L=I, M=II, R=III
+            el.selectedIndex = idx;
+        });
+
+        alphSelects.forEach(id => {
+            const el = document.getElementById(id);
+            for (let i = 0; i < 26; i++) {
+                const opt = document.createElement('option');
+                opt.value = ALPHABET[i];
+                opt.textContent = ALPHABET[i];
+                el.appendChild(opt);
+            }
+        });
+
+        // イベントリスナー
+        document.querySelectorAll('.rotor-config').forEach(el => {
+            el.addEventListener('change', checkRotorDuplicates);
+        });
+        document.getElementById('btn-execute').addEventListener('click', onExecute);
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            document.getElementById('pos-l').selectedIndex = 0;
+            document.getElementById('pos-m').selectedIndex = 0;
+            document.getElementById('pos-r').selectedIndex = 0;
+        });
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            document.getElementById('text-input').value = "";
+            document.getElementById('output-text').textContent = "ここに結果が表示されます";
+            document.querySelector('#log-table tbody').innerHTML = "";
+        });
+
+        checkRotorDuplicates();
+    }
+
+    /**
+     * ロータ重複チェック
+     */
+    function checkRotorDuplicates() {
+        const l = document.getElementById('rotor-l-type').value;
+        const m = document.getElementById('rotor-m-type').value;
+        const r = document.getElementById('rotor-r-type').value;
+        const warning = document.getElementById('rotor-warning');
+
+        if (l === m || m === r || l === r) {
+            warning.textContent = "⚠️ 注意: 同じロータが重複して選択されています（実機では不可能です）。";
+            return false;
+        } else {
+            warning.textContent = "";
+            return true;
+        }
+    }
+
+    /**
+     * プラグボードのパース
+     */
+    function parsePlugboard(str) {
+        const map = new Map();
+        const pairs = str.toUpperCase().trim().split(/\s+/).filter(p => p.length > 0);
+        const usedChars = new Set();
+        const errorEl = document.getElementById('plugboard-error');
+        errorEl.style.display = "none";
+
+        if (pairs.length === 0) return { map, error: null };
+
+        for (const pair of pairs) {
+            if (pair.length !== 2) return { map: null, error: "各ペアは2文字で入力してください（例: AB）。" };
+            const [a, b] = pair.split('');
+            if (!ALPHABET.includes(a) || !ALPHABET.includes(b)) return { map: null, error: "英字(A-Z)のみ使用可能です。" };
+            if (a === b) return { map: null, error: "自分自身への接続はできません。" };
+            if (usedChars.has(a) || usedChars.has(b)) return { map: null, error: "文字が複数のペアで重複しています。" };
+            
+            map.set(a, b);
+            map.set(b, a);
+            usedChars.add(a);
+            usedChars.add(b);
+        }
+        return { map, error: null };
+    }
+
+    /**
+     * ロータ単体での変換処理
+     * @param {number} inputIdx 入力文字のインデックス(0-25)
+     * @param {string} wiring 変換テーブル (ROTORS[type].wiring or .inverse)
+     * @param {number} posIdx 現在のロータ位置 (0-25)
+     * @param {number} ringIdx リング設定 (0-25)
+     */
+    function rotorTransform(inputIdx, wiring, posIdx, ringIdx) {
+        // offset = rotorPosition - ringSetting
+        const offset = mod26(posIdx - ringIdx);
+        // 入力時のシフト
+        const shiftedIn = mod26(inputIdx + offset);
+        // 配線変換
+        const wiredIdx = charToIndex(wiring[shiftedIn]);
+        // 出力時の逆シフト
+        return mod26(wiredIdx - offset);
+    }
+
+    /**
+     * ロータの進歩判定 (Double Stepping 含む)
+     */
+    function stepRotors(state) {
+        const rotorL = ROTORS[state.types.l];
+        const rotorM = ROTORS[state.types.m];
+        const rotorR = ROTORS[state.types.r];
+
+        const lPos = charToIndex(state.pos.l);
+        const mPos = charToIndex(state.pos.m);
+        const rPos = charToIndex(state.pos.r);
+
+        // ノッチ判定 (現在の表示文字がノッチ位置かどうか)
+        const mAtNotch = state.pos.m === rotorM.notch;
+        const rAtNotch = state.pos.r === rotorR.notch;
+
+        let nextL = lPos;
+        let nextM = mPos;
+        let nextR = rPos;
+
+        // 右ロータは常に進む
+        // 中ロータは右のノッチまたはダブルステップ(自身がノッチのとき)で進む
+        // 左ロータは中のノッチで進む
+
+        if (mAtNotch) {
+            // Double stepping
+            nextL = mod26(lPos + 1);
+            nextM = mod26(mPos + 1);
+        } else if (rAtNotch) {
+            nextM = mod26(mPos + 1);
+        }
+
+        nextR = mod26(rPos + 1);
+
+        state.pos.l = indexToChar(nextL);
+        state.pos.m = indexToChar(nextM);
+        state.pos.r = indexToChar(nextR);
+    }
+
+    /**
+     * メイン実行処理
+     */
+    function onExecute() {
+        const inputStr = document.getElementById('text-input').value;
+        const { map: plugMap, error: plugError } = parsePlugboard(document.getElementById('plugboard-input').value);
+
+        if (plugError) {
+            const errEl = document.getElementById('plugboard-error');
+            errEl.textContent = plugError;
+            errEl.style.display = "block";
+            return;
+        }
+
+        // 現在の設定を取得
+        const state = {
+            types: {
+                l: document.getElementById('rotor-l-type').value,
+                m: document.getElementById('rotor-m-type').value,
+                r: document.getElementById('rotor-r-type').value
+            },
+            rings: {
+                l: charToIndex(document.getElementById('ring-l').value),
+                m: charToIndex(document.getElementById('ring-m').value),
+                r: charToIndex(document.getElementById('ring-r').value)
+            },
+            pos: {
+                l: document.getElementById('pos-l').value,
+                m: document.getElementById('pos-m').value,
+                r: document.getElementById('pos-r').value
+            },
+            reflector: document.getElementById('reflector-select').value
+        };
+
+        const logs = [];
+        let resultStr = "";
+
+        for (let i = 0; i < inputStr.length; i++) {
+            const char = inputStr[i].toUpperCase();
+            
+            // A-Z 以外はスルー
+            if (!ALPHABET.includes(char)) {
+                resultStr += inputStr[i];
+                continue;
+            }
+
+            const posBefore = `${state.pos.l}${state.pos.m}${state.pos.r}`;
+
+            // 1. ロータが進む
+            stepRotors(state);
+            const posAfter = `${state.pos.l}${state.pos.m}${state.pos.r}`;
+
+            // 2. プラグボード
+            let currentIdx = charToIndex(plugMap.has(char) ? plugMap.get(char) : char);
+
+            // 3. ロータ通過 (往路: R -> M -> L)
+            currentIdx = rotorTransform(currentIdx, ROTORS[state.types.r].wiring, charToIndex(state.pos.r), state.rings.r);
+            currentIdx = rotorTransform(currentIdx, ROTORS[state.types.m].wiring, charToIndex(state.pos.m), state.rings.m);
+            currentIdx = rotorTransform(currentIdx, ROTORS[state.types.l].wiring, charToIndex(state.pos.l), state.rings.l);
+
+            // 4. リフレクタ
+            const refWiring = REFLECTORS[state.reflector];
+            currentIdx = charToIndex(refWiring[currentIdx]);
+
+            // 5. ロータ通過 (復路: L -> M -> R)
+            currentIdx = rotorTransform(currentIdx, ROTORS[state.types.l].inverse, charToIndex(state.pos.l), state.rings.l);
+            currentIdx = rotorTransform(currentIdx, ROTORS[state.types.m].inverse, charToIndex(state.pos.m), state.rings.m);
+            currentIdx = rotorTransform(currentIdx, ROTORS[state.types.r].inverse, charToIndex(state.pos.r), state.rings.r);
+
+            // 6. プラグボード (出口)
+            let outChar = indexToChar(currentIdx);
+            outChar = plugMap.has(outChar) ? plugMap.get(outChar) : outChar;
+
+            resultStr += outChar;
+
+            // ログ追加
+            logs.push({
+                in: char,
+                before: posBefore,
+                out: outChar,
+                after: posAfter
+            });
+        }
+
+        // 結果反映
+        document.getElementById('output-text').textContent = resultStr;
+        document.getElementById('final-pos').textContent = `${state.pos.l}${state.pos.m}${state.pos.r}`;
+        
+        // UI上のロータ位置を同期
+        document.getElementById('pos-l').value = state.pos.l;
+        document.getElementById('pos-m').value = state.pos.m;
+        document.getElementById('pos-r').value = state.pos.r;
+
+        updateLogTable(logs);
+    }
+
+    /**
+     * ログテーブルの更新
+     */
+    function updateLogTable(logs) {
+        const tbody = document.querySelector('#log-table tbody');
+        tbody.innerHTML = "";
+        
+        // 最新100件までに制限（パフォーマンス用）
+        const displayLogs = logs.slice(-100);
+        
+        displayLogs.forEach((log, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${idx + 1}</td>
+                <td>${log.in}</td>
+                <td>${log.before}</td>
+                <td style="color:var(--accent-color); font-weight:bold;">${log.out}</td>
+                <td>${log.after}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.onload = initUI;
+</script>
+
+</body>
+</html>
